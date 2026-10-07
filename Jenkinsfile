@@ -14,14 +14,15 @@ pipeline {
                 sh '''
                 docker compose down --remove-orphans || true
 
-                docker container prune -f || true
+                docker stop $(docker ps -aq) || true
+
+                docker rm -f $(docker ps -aq) || true
 
                 docker network prune -f || true
 
-                sudo fuser -k 8000/tcp || true
-                sudo fuser -k 4200/tcp || true
+                docker container prune -f || true
 
-                sleep 5
+                docker image prune -f || true
                 '''
             }
         }
@@ -29,7 +30,7 @@ pipeline {
         stage('Build Images') {
             steps {
                 sh '''
-                docker compose build --no-cache
+                docker compose build
                 '''
             }
         }
@@ -48,10 +49,6 @@ pipeline {
                 docker compose ps
 
                 docker ps
-
-                sleep 10
-
-                docker compose logs --tail=50
                 '''
             }
         }
@@ -63,10 +60,6 @@ pipeline {
             echo 'Deployment Successful'
 
             sh '''
-            echo "===== RUNNING CONTAINERS ====="
-            docker ps
-
-            echo "===== DOCKER COMPOSE STATUS ====="
             docker compose ps
             '''
         }
@@ -75,14 +68,8 @@ pipeline {
             echo 'Deployment Failed'
 
             sh '''
-            echo "===== DOCKER STATUS ====="
             docker ps -a || true
-
-            echo "===== BACKEND LOGS ====="
-            docker compose logs backend || true
-
-            echo "===== FRONTEND LOGS ====="
-            docker compose logs frontend || true
+            docker compose logs || true
             '''
         }
     }

@@ -9,7 +9,7 @@ pipeline {
             }
         }
 
-        stage('Stop Existing Deployment') {
+        stage('Cleanup Environment') {
             steps {
                 sh '''
                 docker compose down --remove-orphans || true
@@ -17,6 +17,11 @@ pipeline {
                 docker container prune -f || true
 
                 docker network prune -f || true
+
+                sudo fuser -k 8000/tcp || true
+                sudo fuser -k 4200/tcp || true
+
+                sleep 5
                 '''
             }
         }
@@ -24,7 +29,7 @@ pipeline {
         stage('Build Images') {
             steps {
                 sh '''
-                docker compose build
+                docker compose build --no-cache
                 '''
             }
         }
@@ -43,6 +48,10 @@ pipeline {
                 docker compose ps
 
                 docker ps
+
+                sleep 10
+
+                docker compose logs --tail=50
                 '''
             }
         }
@@ -54,6 +63,10 @@ pipeline {
             echo 'Deployment Successful'
 
             sh '''
+            echo "===== RUNNING CONTAINERS ====="
+            docker ps
+
+            echo "===== DOCKER COMPOSE STATUS ====="
             docker compose ps
             '''
         }
@@ -62,7 +75,14 @@ pipeline {
             echo 'Deployment Failed'
 
             sh '''
-            docker compose logs --tail=100 || true
+            echo "===== DOCKER STATUS ====="
+            docker ps -a || true
+
+            echo "===== BACKEND LOGS ====="
+            docker compose logs backend || true
+
+            echo "===== FRONTEND LOGS ====="
+            docker compose logs frontend || true
             '''
         }
     }

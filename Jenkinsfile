@@ -13,6 +13,10 @@ pipeline {
             steps {
                 sh '''
                 docker compose down --remove-orphans || true
+
+                docker container prune -f || true
+
+                docker network prune -f || true
                 '''
             }
         }
@@ -37,19 +41,29 @@ pipeline {
             steps {
                 sh '''
                 docker compose ps
+
+                docker ps
                 '''
             }
         }
     }
 
     post {
+
         success {
             echo 'Deployment Successful'
+
+            sh '''
+            docker compose ps
+            '''
         }
 
         failure {
             echo 'Deployment Failed'
+
+            sh '''
+            docker compose logs --tail=100 || true
+            '''
         }
     }
 }
-
